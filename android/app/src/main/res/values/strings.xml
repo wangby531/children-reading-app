@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">读书宝</string>
+    <string name="title_activity_main">读书宝</string>
+    <string name="package_name">com.dushubao.app</string>
+    <string name="custom_url_scheme">com.dushubao.app</string>
+</resources>

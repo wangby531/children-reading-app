@@ -1,0 +1,11 @@
+{
+  "appId": "com.dushubao.app",
+  "appName": "读书宝",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

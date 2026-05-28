@@ -1,0 +1,16 @@
+{
+  "name": "dushubao",
+  "version": "1.0.0",
+  "description": "读书宝 - 儿童智能阅读APP",
+  "scripts": {
+    "build": "echo 'static app, no build needed'",
+    "cap:sync": "npx cap sync android",
+    "cap:build": "npx cap build android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4"
+  }
+}

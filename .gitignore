@@ -1,0 +1,16 @@
+node_modules/
+.gradle/
+*.log
+.DS_Store
+Thumbs.db
+android/app/build/
+android/.gradle/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+config.local.js
+server.crt
+server.key
+*.apk
+test_images/*.wav
+test_images/page*.wav
+test_images/full_*.wav

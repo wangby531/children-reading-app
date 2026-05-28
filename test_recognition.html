@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>识别Skill测试</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+        .section h3 { margin-top: 0; color: #555; }
+        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        button { padding: 12px 24px; background: #FFB088; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        button:hover { background: #e89a70; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { background: #e8f5e9; border-left: 4px solid #4caf50; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; }
+        .info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        #status { font-weight: bold; }
+        #timeTaken { color: #666; font-size: 14px; }
+        .config { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .config input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        img { max-width: 100%; max-height: 300px; border: 1px solid #ddd; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 识别Skill测试工具</h1>
+
+        <div class="section info">
+            <h3>📋 测试说明</h3>
+            <p>此工具用于测试小米mimo大模型的识别功能。请确保：</p>
+            <ol>
+                <li>API密钥已正确配置</li>
+                <li>网络连接正常</li>
+                <li>测试图片已选择</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h3>⚙️ API配置</h3>
+            <div class="config">
+                <div>
+                    <label>API地址：</label>
+                    <input type="text" id="apiUrl" value="https://token-plan-cn.xiaomimimo.com/v1/chat/completions" style="width:100%">
+                </div>
+                <div>
+                    <label>模型名称：</label>
+                    <input type="text" id="model" value="mimo-v2.5-pro" style="width:100%">
+                </div>
+                <div>
+                    <label>API密钥：</label>
+                    <input type="password" id="apiKey" placeholder="输入你的API密钥" style="width:100%">
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🖼️ 选择测试图片</h3>
+            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
+            <br>
+            <img id="imagePreview" src="" alt="图片预览" style="display:none">
+        </div>
+
+        <div class="section">
+            <h3>📝 提示词配置</h3>
+            <label>System Message：</label>
+            <textarea id="systemPrompt">你是一个OCR识别引擎。只输出识别到的文字，不输出任何解释、前缀或格式。</textarea>
+            <br><br>
+            <label>User Message：</label>
+            <textarea id="userPrompt">识别图中文字，只输出中文内容，忽略拼音和封面信息。</textarea>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="startRecognition()" id="startBtn">🚀 开始识别</button>
+            <button onclick="clearResults()" id="clearBtn">🗑️ 清除结果</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 测试结果</h3>
+            <p>状态：<span id="status">等待测试...</span></p>
+            <p id="timeTaken"></p>
+            <div id="resultContent" style="white-space: pre-wrap;"></div>
+        </div>
+
+        <div class="section">
+            <h3>📜 完整响应</h3>
+            <textarea id="fullResponse" readonly style="height: 200px; background: #f5f5f5;"></textarea>
+        </div>
+    </div>
+
+    <script>
+        let imageBase64 = null;
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+
+                    // 提取base64
+                    imageBase64 = e.target.result.split(',')[1];
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function startRecognition() {
+            const apiKey = document.getElementById('apiKey').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+            const model = document.getElementById('model').value;
+            const systemPrompt = document.getElementById('systemPrompt').value;
+            const userPrompt = document.getElementById('userPrompt').value;
+
+            if (!apiKey) {
+                alert('请输入API密钥');
+                return;
+            }
+
+            if (!imageBase64) {
+                alert('请选择测试图片');
+                return;
+            }
+
+            const startBtn = document.getElementById('startBtn');
+            const statusEl = document.getElementById('status');
+            const timeEl = document.getElementById('timeTaken');
+            const resultEl = document.getElementById('resultContent');
+            const responseEl = document.getElementById('fullResponse');
+
+            startBtn.disabled = true;
+            statusEl.textContent = '识别中...';
+            statusEl.style.color = '#ff9800';
+            resultEl.textContent = '';
+            responseEl.value = '';
+
+            const startTime = performance.now();
+
+            try {
+                const requestBody = {
+                    model: model,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: 'data:image/jpeg;base64,' + imageBase64
+                                    }
+                                },
+                                {
+                                    type: 'text',
+                                    text: userPrompt
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0,
+                    stream: false
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey,
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const endTime = performance.now();
+                const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+
+                const data = await response.json();
+                responseEl.value = JSON.stringify(data, null, 2);
+
+                if (response.ok && data.choices && data.choices.length > 0) {
+                    const recognizedText = data.choices[0].message.content;
+                    statusEl.textContent = '✅ 识别成功';
+                    statusEl.style.color = '#4caf50';
+                    timeEl.textContent = `⏱️ 耗时：${timeTaken}秒`;
+                    resultEl.className = 'result';
+                    resultEl.textContent = recognizedText;
+                } else {
+                    statusEl.textContent = '❌ 识别失败';
+                    statusEl.style.color = '#f44336';
+                    timeEl.textContent = `⏱️ 耗时：${timeTaken}秒`;
+                    resultEl.className = 'error';
+                    resultEl.textContent = '错误信息：' + (data.error?.message || JSON.stringify(data));
+                }
+            } catch (error) {
+                const endTime = performance.now();
+                const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+
+                statusEl.textContent = '❌ 请求失败';
+                statusEl.style.color = '#f44336';
+                timeEl.textContent = `⏱️ 耗时：${timeTaken}秒`;
+                resultEl.className = 'error';
+                resultEl.textContent = '错误：' + error.message;
+            } finally {
+                startBtn.disabled = false;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('status').textContent = '等待测试...';
+            document.getElementById('status').style.color = '#333';
+            document.getElementById('timeTaken').textContent = '';
+            document.getElementById('resultContent').textContent = '';
+            document.getElementById('resultContent').className = '';
+            document.getElementById('fullResponse').value = '';
+        }
+    </script>
+</body>
+</html>
